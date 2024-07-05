@@ -1,50 +1,50 @@
 #!/usr/bin/python3
-"""Module file_storage
-
-This Module contains a definition for FileStorage Class
 """
-
-
-import importlib
+Defines the FileStorage class
+"""
 import json
 import os
-import re
-
 
 class FileStorage:
-    """FileStorage Class
-
-    Attributes:
-        __file_path (str): string - path to the JSON file
-        __objects (dict): A dictionary of instantiated objects.
-
     """
+    Serializes instances to a JSON file and deserializes JSON file to instances
+    """
+
     __file_path = "file.json"
     __objects = {}
 
     def all(self):
-        """returns the dictionary __objects"""
-        return self.__objects
+        """
+        Returns the dictionary __objects
+        """
+        return FileStorage.__objects
 
     def new(self, obj):
-        """Set in __objects obj with key <obj_class_name>.id"""
-        self.__objects[f"{obj.__class__.__name__}.{obj.id}"] = obj
+        """
+        Sets in __objects the obj with key <obj class name>.id
+        """
+        key = f"{obj.__class__.__name__}.{obj.id}"
+        FileStorage.__objects[key] = obj
 
     def save(self):
-        """Serialize __objects to the JSON file __file_path."""
-        with open(self.__file_path, 'w') as f:
-            json.dump({k: v.to_dict() for k, v in self.__objects.items()}, f)
+        """
+        Serializes __objects to the JSON file (path: __file_path)
+        """
+        obj_dict = {key: obj.to_dict() for key, obj in FileStorage.__objects.items()}
+        with open(FileStorage.__file_path, 'w') as f:
+            json.dump(obj_dict, f)
 
     def reload(self):
-        """Deserialize the JSON file __file_path to __objects, if it exists."""
-        if (os.path.isfile(self.__file_path)
-                and os.path.getsize(self.__file_path) > 0):
-            with open(self.__file_path, 'r') as f:
-                self.__objects = {k: self.get_class(k.split(".")[0])(**v)
-                                  for k, v in json.load(f).items()}
-
-    def get_class(self, name):
-        """ returns a class from models module using its name"""
-        sub_module = re.sub('(?!^)([A-Z]+)', r'_\1', name).lower()
-        module = importlib.import_module(f"models.{sub_module}")
-        return getattr(module, name)
+        """
+        Deserializes the JSON file to __objects (only if the JSON file (__file_path) exists)
+        """
+        if os.path.exists(FileStorage.__file_path):
+            with open(FileStorage.__file_path, 'r') as f:
+                obj_dict = json.load(f)
+                from models.base_model import BaseModel
+                for key, value in obj_dict.items():
+                    cls_name = value['__class__']
+                    cls = globals().get(cls_name)
+                    if cls:
+                        obj = cls(**value)
+                        FileStorage.__objects[key] = obj
